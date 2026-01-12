@@ -3,6 +3,7 @@ export class VMState {
   ptr = 0;
   ip = 0;
   tokens = [];
+  error = null;
 
   constructor(tokens) {
     this.tokens = tokens;
@@ -19,7 +20,12 @@ export class VMState {
         stack.push(i);
       } else if (token.op === "LOOP_END") {
         if (stack.length === 0) {
-          throw new Error(`Unmatched LOOP_END at ip=${i}`);
+          this.error = {
+            type: "UNMATCHED_LOOP",
+            message: "Unmatched LOOP_END",
+            ip: i,
+          };
+          return;
         }
         const start = stack.pop();
         this.tokens[start].jump = i;
@@ -28,11 +34,19 @@ export class VMState {
     }
 
     if (stack.length > 0) {
-      throw new Error("Unmatched LOOP_START");
+      this.error = {
+        type: "UNMATCHED_LOOP",
+        message: "Unmatched LOOP_START",
+        ip: stack[stack.length - 1],
+      };
     }
   }
 
   step() {
+    if (this.error) {
+      return "ERROR";
+    }
+
     const token = this.tokens[this.ip];
     if (!token) return "END";
 
