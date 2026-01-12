@@ -1,49 +1,45 @@
+/**
+ * @typedef {Object} VMError
+ * @property {string} message
+ * @property {number} ip
+ */
+
 export class VMState {
   memory = new Uint8Array(30000);
   ptr = 0;
   ip = 0;
+
+  /** @type {Array} */
   tokens = [];
+
+  /** @type {VMError|null} */
   error = null;
+
+  /** 実行可能かどうか */
+  runnable = true;
 
   constructor(tokens) {
     this.tokens = tokens;
-    this.buildJumpTable();
   }
 
-  buildJumpTable() {
-    const stack = [];
+  /**
+   * tokenize 結果から VMState を生成する
+   * - tokenize error があれば runnable=false
+   */
+  static fromTokenizeResult(result) {
+    const vm = new VMState(result.tokens || []);
 
-    for (let i = 0; i < this.tokens.length; i++) {
-      const token = this.tokens[i];
-
-      if (token.op === "LOOP_START") {
-        stack.push(i);
-      } else if (token.op === "LOOP_END") {
-        if (stack.length === 0) {
-          this.error = {
-            type: "UNMATCHED_LOOP",
-            message: "Unmatched LOOP_END",
-            ip: i,
-          };
-          return;
-        }
-        const start = stack.pop();
-        this.tokens[start].jump = i;
-        token.jump = start;
-      }
+    if (result.error) {
+      vm.error = result.error;
+      vm.ip = result.error.ip;
+      vm.runnable = false;
     }
 
-    if (stack.length > 0) {
-      this.error = {
-        type: "UNMATCHED_LOOP",
-        message: "Unmatched LOOP_START",
-        ip: stack[stack.length - 1],
-      };
-    }
+    return vm;
   }
 
   step() {
-    if (this.error) {
+    if (!this.runnable) {
       return "ERROR";
     }
 
