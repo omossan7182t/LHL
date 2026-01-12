@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>LH Language MVP</title>
+</head>
+<body>
+  <h1>LH Language MVP</h1>
+
+  <script type="module">
+    import { NukuLanguage } from "./languages/nuku.js";
+    import { LanguageRegistry } from "./language/LanguageRegistry.js";
+    import { tokenizeNukuDialect } from "./tokenize/tokenizeNukuDialect.js";
+    import { VMState } from "./vm/VMState.js";
+
+    LanguageRegistry.register(NukuLanguage);
+
+    const src = "++>+.";
+    const tokens = tokenizeNukuDialect(src, "nuku");
+    const vm = new VMState(tokens);
+
+    while (true) {
+      const r = vm.step();
+      if (r === "END") break;
+    }
+
+    console.log("done");
+  </script>
+</body>
+</html>
