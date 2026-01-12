@@ -1,119 +1,87 @@
+import { LanguageRegistry } from "../language/LanguageRegistry";
+
 /**
- * Tokenize source code written in Nuku dialect.
- * @param {string} src
- * @param {string} langId
- * @returns {{ tokens: Array, error: VMError | null, warnings: VMWarning[] }}
+ * @typedef {Object} Token
+ * @property {string} op
+ * @property {number=} delta
+ * @property {number=} jump
+ */
+
+/**
+ * @typedef {Object} VMError
+ * @property {string} message
+ * @property {number} ip
+ */
+
+/**
+ * @typedef {Object} TokenizeResult
+ * @property {Token[]} tokens
+ * @property {VMError=} error
+ * @property {Array=} warnings
+ */
+
+/**
+ * tokenizeNukuDialect
+ * - 命令抽出
+ * - LOOP_START / LOOP_END のジャンプテーブル構築
+ * - unmatched loop を tokenize error として返す
  */
 export function tokenizeNukuDialect(src, langId = "nuku") {
-  const lang = LanguageRegistry.get(langId)
+  const lang = LanguageRegistry.get(langId);
 
-  const tokens = []
-  const warnings = []
+  /** @type {Token[]} */
+  const tokens = [];
 
-  let ip = 0
+  /** @type {number[]} */
+  const loopStack = [];
 
-  // 単語単位（空白 or 改行）
-  const words = src.split(/\s+/).filter(Boolean)
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    const cmd = lang.commands[ch];
+    if (!cmd) continue;
 
-  for (let wIndex = 0; wIndex < words.length; wIndex++) {
-    const word = words[wIndex]
+    const token = {
+      op: cmd.op,
+      delta: cmd.delta,
+    };
 
-    /* ---------- number literal ---------- */
-    if (word.startsWith("ぬっ")) {
-      const match = /^ぬ(っ+)く$/.exec(word)
-      if (!match) {
+    const ip = tokens.length;
+
+    // LOOP_START
+    if (token.op === "LOOP_START") {
+      loopStack.push(ip);
+    }
+
+    // LOOP_END
+    if (token.op === "LOOP_END") {
+      const startIp = loopStack.pop();
+      if (startIp == null) {
         return {
           tokens,
-          warnings,
-          error: new VMError(
-            "INVALID_NUMBER",
-            "Invalid nuku number literal",
+          error: {
+            message: "Unmatched LOOP_END",
             ip,
-            "TOKENIZE"
-          ),
-        }
+          },
+        };
       }
-
-      const power = match[1].length - 1
-      const value = Math.pow(10, power)
-
-      // 巨大 number → medium warning
-      if (power >= 5) {
-        warnings.push(
-          new VMWarning({
-            code: "LARGE_NUMBER",
-            message: "Large number literal may cause unintended output",
-            ip,
-            severity: "medium",
-            source: "TOKENIZE",
-          })
-        )
-      }
-
-      tokens.push({
-        op: "ADD",
-        delta: value,
-        sourceWordIndex: wIndex,
-      })
-
-      // 境界曖昧チェック（次の単語が命令で区切りなし感）
-      const next = words[wIndex + 1]
-      if (next && !next.startsWith("ぬっ") && !lang.commands[next]) {
-        warnings.push(
-          new VMWarning({
-            code: WarningCodes.AMBIGUOUS_BOUNDARY,
-            message: "Ambiguous boundary after number literal",
-            ip,
-            severity: "medium",
-            source: "TOKENIZE",
-          })
-        )
-      }
-
-      ip++
-      continue
+      token.jump = startIp;
+      tokens[startIp].jump = ip;
     }
 
-    /* ---------- command ---------- */
-    const cmd = lang.commands[word]
-    if (cmd) {
-      tokens.push({
-        op: cmd.op,
-        delta: cmd.delta,
-        sourceWordIndex: wIndex,
-      })
-
-      // 冗長 command 連続 → low warning
-      const prev = tokens[tokens.length - 2]
-      if (
-        prev &&
-        prev.op === cmd.op &&
-        typeof cmd.delta === "number" &&
-        cmd.op === "ADD"
-      ) {
-        warnings.push(
-          new VMWarning({
-            code: WarningCodes.INEFFICIENT_COMMAND_RUN,
-            message: "Repeated commands could be encoded as a number literal",
-            ip,
-            severity: "low",
-            source: "TOKENIZE",
-          })
-        )
-      }
-
-      ip++
-      continue
-    }
-
-    /* ---------- unknown word ---------- */
-    // 仕様：完全無視（Brainfuck 準拠）
-    continue
+    tokens.push(token);
   }
 
-  return {
-    tokens,
-    error: null,
-    warnings,
+  // unmatched LOOP_START
+  if (loopStack.length > 0) {
+    const ip = loopStack.pop();
+    return {
+      tokens,
+      error: {
+        message: "Unmatched LOOP_START",
+        ip,
+      },
+    };
   }
+
+  return { tokens };
 }
