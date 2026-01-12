@@ -1,21 +1,18 @@
-type Token = {
-  op: string;
-  delta?: number;
-};
-
 export class VMState {
   memory = new Uint8Array(30000);
   ptr = 0;
   ip = 0;
-  tokens: Token[] = [];
+  tokens = [];
 
-  constructor(tokens: Token[]) {
+  constructor(tokens) {
     this.tokens = tokens;
   }
 
   step() {
     const token = this.tokens[this.ip];
-    if (!token) return "END";
+    if (!token) {
+      return "END";
+    }
 
     switch (token.op) {
       case "ADD":
