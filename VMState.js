@@ -3,6 +3,7 @@ export class VMState {
   ptr = 0;
   ip = 0;
   tokens = [];
+  pendingCount = 0;
 
   constructor(tokens) {
     this.tokens = tokens;
@@ -13,10 +14,19 @@ export class VMState {
     if (!token) return { state: "END" };
 
     switch (token.op) {
-      case "ADD":
-        this.memory[this.ptr] += token.delta ?? 0;
+      case "NUMBER":
+        this.pendingCount += token.value;
         this.ip++;
         break;
+
+      case "ADD": {
+        const delta = token.delta ?? 0;
+        const count = this.pendingCount || 1;
+        this.memory[this.ptr] += delta * count;
+        this.pendingCount = 0;
+        this.ip++;
+        break;
+      }
 
       case "MOVE":
         this.ptr += token.delta ?? 0;
@@ -29,7 +39,6 @@ export class VMState {
         break;
 
       case "INPUT":
-        // 未実装
         this.ip++;
         break;
 
