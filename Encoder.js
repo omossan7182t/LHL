@@ -3,7 +3,7 @@
 // - number literal を 1 トークンとして保持
 // - VM 側では op と value を見るだけで実行可能
 
-export class Encoder {
+class Encoder {
   /**
    * @param {Array} tokenizeResult.tokens
    * @returns {Array} encoded tokens
@@ -41,3 +41,5 @@ export class Encoder {
     return encoded;
   }
 }
+
+window.Encoder = Encoder;
