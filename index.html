@@ -1,34 +1,46 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>LH Language (Unofficial)</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>LH Language Playground (Unofficial)</title>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <header>
-    <span id="languageLabel">Language: LH Language (Unofficial)</span>
-    <span id="debugLabel">Debug / Mode</span>
+  <header class="app-header">
+    <div class="app-header__left">
+      <strong>Language: LH Language (Unofficial)</strong>
+    </div>
+    <div class="app-header__right">
+      <span id="mode-indicator">Mode: Normal</span>
+    </div>
   </header>
 
-  <select id="langSelect"></select>
-  <select id="sampleSelect"></select>
-  <textarea id="codeInput" rows="10" cols="60"></textarea>
-  
-  <div>
-    <button id="runBtn">Run</button>
-    <button id="stepBtn">Step</button>
-  </div>
+  <main class="app-main">
+    <section class="panel panel--code">
+      <h2>Code</h2>
+      <textarea id="code-editor" rows="12"></textarea>
+    </section>
 
-  <div id="statusBar"></div>
-  <div id="memoryPanel" class="memory-panel"></div>
-  <div id="currentCell" class="current-cell"></div>
-  <div id="vmOutput"></div>
+    <section class="panel panel--memory">
+      <h2>Memory</h2>
+      <div id="memory-grid"></div>
+      <div id="current-cell"></div>
+    </section>
 
-  <script src="LanguageRegistry.js"></script>
-  <script src="NukuLanguage.js"></script>
-  <script src="tokenizeNukuDialect.js"></script>
-  <script src="VMState.js"></script>
-  <script src="main.js"></script>
+    <section class="panel panel--output">
+      <h2>Output</h2>
+      <pre id="output"></pre>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <small>
+      LH Language (Lose Lang) is an unofficial fan-made programming language.<br />
+      This project is not affiliated with any official works.<br />
+      Do not encode or decode content that violates public order or morality.
+    </small>
+  </footer>
+
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
