@@ -1,7 +1,7 @@
 // vm/VMState.js
 // Brainfuck ベース VM（number literal / loop / memory view 対応）
 
-export class VMState {
+class VMState {
   constructor(tokens, jumpTable) {
     this.tokens = tokens;
     this.jumpTable = jumpTable;
@@ -133,3 +133,5 @@ export class VMState {
     return ".";
   }
 }
+
+window.VMState = VMState;
