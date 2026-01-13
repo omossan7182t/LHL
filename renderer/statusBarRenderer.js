@@ -1,7 +1,7 @@
 // renderer/statusBarRenderer.js
 // ステータスバー描画（STOP_REASON / IP / ptr / pendingCount）
 
-export function renderStatusBar({
+function renderStatusBar({
   container,
   stopReason,
   ip,
@@ -52,3 +52,5 @@ export function renderStatusBar({
 
   container.appendChild(wrapper);
 }
+
+window.renderStatusBar = renderStatusBar;
