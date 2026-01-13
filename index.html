@@ -15,15 +15,7 @@
       <h1 class="app-title">UiLang Playground</h1>
     </header>
 
-    <!-- ===== コントロール ===== -->
-    <section id="code" class="panel panel--code"></section>
-
-    <section class="panel panel--right">
-      <div id="status" class="status-bar"></div>
-      <div id="memory" class="memory-panel"></div>
-      <div id="error" class="error-panel"></div>
-    </section>
-    
+    <!-- ===== コントロール ===== -->    
     <section class="controls">
       <button id="btn-run">Run</button>
       <button id="btn-step">Step</button>
@@ -31,7 +23,7 @@
     </section>
 
     <!-- ===== ステータスバー ===== -->
-    <section id="status-bar" class="status-bar">
+    <section id="status" class="status-bar">
       <!-- statusBar.js が描画 -->
     </section>
 
@@ -39,7 +31,7 @@
     <main class="main-layout">
 
       <!-- コード表示 -->
-      <section class="code-panel">
+      <pre id="code" class="code-view">
         <pre id="code-view" class="code-view">
 <!-- renderCode.js が描画 -->
         </pre>
@@ -47,7 +39,7 @@
 
       <!-- メモリ表示 -->
       <section class="memory-panel">
-        <div id="memory-view">
+        <div id="memory" class="memory-panel">
           <!-- renderMemory.js が描画 -->
         </div>
       </section>
@@ -55,7 +47,7 @@
     </main>
 
     <!-- ===== エラー表示 ===== -->
-    <section id="error-panel" class="error-panel">
+    <section id="error" class="error-panel">
       <!-- errorRenderer.js が描画 -->
     </section>
 
