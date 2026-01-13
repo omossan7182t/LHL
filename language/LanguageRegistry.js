@@ -1,4 +1,4 @@
-export class LanguageRegistry {
+class LanguageRegistry {
   static languages = new Map();
 
   static register(lang) {
@@ -25,3 +25,5 @@ export class LanguageRegistry {
     if (!lang.commands) throw new Error("language.commands is required");
   }
 }
+
+window.LanguageRegistry = LanguageRegistry
