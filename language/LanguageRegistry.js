@@ -26,4 +26,4 @@ class LanguageRegistry {
   }
 }
 
-window.LanguageRegistry = LanguageRegistry
+window.LanguageRegistry = LanguageRegistry;
