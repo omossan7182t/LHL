@@ -1,40 +1,54 @@
-// renderMemory.js
+// renderer/memoryRenderer.js
+// メモリパネル（5 × 16 グリッド）描画
 
-export function renderMemoryPanel(vm) {
-  const panel = document.getElementById("memory-panel");
-  const current = document.getElementById("memory-current");
+export function renderMemoryPanel({
+  container,
+  memoryViewModel,
+  ptr,
+}) {
+  container.innerHTML = "";
 
-  const model = vm.getMemoryViewModel(0, 80);
+  const grid = document.createElement("div");
+  grid.className = "memory-grid";
 
-  panel.innerHTML = "";
+  memoryViewModel.forEach((cell) => {
+    const cellEl = document.createElement("div");
+    cellEl.className = "memory-cell";
 
-  model.cells.forEach((cell) => {
-    const el = document.createElement("div");
-    el.className = "memory-cell";
-    el.dataset.addr = cell.addr;
-
-    if (cell.isCurrent) {
-      el.classList.add("current");
+    if (cell.index === ptr) {
+      cellEl.classList.add("is-active");
     }
 
-    el.innerHTML = `
-      <div class="mem-addr">${cell.addr}</div>
-      <div class="mem-value">${cell.value}</div>
-      <div class="mem-char">${cell.char || "·"}</div>
-    `;
+    /* =========================
+     * index
+     * ========================= */
 
-    panel.appendChild(el);
+    const indexEl = document.createElement("div");
+    indexEl.className = "memory-index";
+    indexEl.textContent = cell.index;
+
+    /* =========================
+     * value（コードポイント）
+     * ========================= */
+
+    const valueEl = document.createElement("div");
+    valueEl.className = "memory-value";
+    valueEl.textContent = cell.value;
+
+    /* =========================
+     * char（UTF-8 printable）
+     * ========================= */
+
+    const charEl = document.createElement("div");
+    charEl.className = "memory-char";
+    charEl.textContent = cell.char;
+
+    cellEl.appendChild(indexEl);
+    cellEl.appendChild(valueEl);
+    cellEl.appendChild(charEl);
+
+    grid.appendChild(cellEl);
   });
 
-  // --- 現在セル詳細 ---
-  current.innerHTML = `
-    <strong>Current Cell</strong><br>
-    PTR: ${model.currentPtr}<br>
-    VALUE: ${model.currentValue}<br>
-    CHAR: ${
-      model.currentValue >= 0x20
-        ? String.fromCodePoint(model.currentValue)
-        : "·"
-    }
-  `;
+  container.appendChild(grid);
 }
