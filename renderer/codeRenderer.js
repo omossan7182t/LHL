@@ -1,7 +1,7 @@
 // renderer/codeRenderer.js
 // ソースコード表示 + IP / BP / ERROR ハイライト
 
-export function renderCode({
+function renderCode({
   container,
   source,
   tokens,
@@ -62,3 +62,5 @@ export function renderCode({
     container.appendChild(lineEl);
   });
 }
+
+window.renderCode = renderCode;
