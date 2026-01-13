@@ -3,70 +3,76 @@
 <head>
   <meta charset="UTF-8" />
   <title>UiLang Playground</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- CSS -->
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
+  <div id="app">
 
-  <!-- =========================
-   * ヘッダー
-   * ========================= -->
-  <header>
-    <div class="header-left">UiLang Playground</div>
-    <div class="header-right">Minimal Esoteric VM</div>
-  </header>
+    <!-- ===== ヘッダー ===== -->
+    <header class="app-header">
+      <h1 class="app-title">UiLang Playground</h1>
+    </header>
 
-  <!-- =========================
-   * メイン
-   * ========================= -->
-  <main>
-
-    <!-- 左：コード入力 & 表示 -->
-    <section>
-
-      <textarea id="code" placeholder="UiLang code here..."></textarea>
-
-      <div style="margin: 6px 0;">
-        <button id="btnRun">Run</button>
-        <button id="btnStep">Step</button>
-        <button id="btnReset">Reset</button>
-      </div>
-
-      <div id="codeView"></div>
-
-      <div id="errorBox"></div>
-
+    <!-- ===== コントロール ===== -->
+    <section class="controls">
+      <button id="btn-run">Run</button>
+      <button id="btn-step">Step</button>
+      <button id="btn-reset">Reset</button>
     </section>
 
-    <!-- 右：メモリ & ステータス -->
-    <section>
-
-      <div id="memoryPanel"></div>
-
-      <div id="statusBar"></div>
-
+    <!-- ===== ステータスバー ===== -->
+    <section id="status-bar" class="status-bar">
+      <!-- statusBar.js が描画 -->
     </section>
 
-  </main>
+    <!-- ===== メイン領域 ===== -->
+    <main class="main-layout">
 
-  <!-- =========================
-   * フッター
-   * ========================= -->
-  <footer>
-    <div class="footer-note">
-      UiLang is a toy language for experimental VM design.
-    </div>
-  </footer>
+      <!-- コード表示 -->
+      <section class="code-panel">
+        <pre id="code-view" class="code-view">
+<!-- renderCode.js が描画 -->
+        </pre>
+      </section>
 
-  <!-- =========================
-   * JavaScript
-   * ========================= -->
+      <!-- メモリ表示 -->
+      <section class="memory-panel">
+        <div id="memory-view">
+          <!-- renderMemory.js が描画 -->
+        </div>
+      </section>
 
-  <script src="MState.js"></script>
-  <script src="statusBar.js"></script>
-  <script src="ui.js"></script>
+    </main>
+
+    <!-- ===== エラー表示 ===== -->
+    <section id="error-panel" class="error-panel">
+      <!-- errorRenderer.js が描画 -->
+    </section>
+
+  </div>
+
+  <!-- ===== スクリプト読み込み順（重要） ===== -->
+
+  <!-- 言語・エンコード -->
+  <script src="./LanguageRegistry.js"></script>
+  <script src="./Encoder.js"></script>
+
+  <!-- VM -->
+  <script src="./MState.js"></script>
+
+  <!-- Controller -->
+  <script src="./ExecutionController.js"></script>
+
+  <!-- Renderers -->
+  <script src="./renderCode.js"></script>
+  <script src="./renderMemory.js"></script>
+  <script src="./statusBar.js"></script>
+  <script src="./errorRenderer.js"></script>
+
+  <!-- Entry point -->
+  <script src="./main.js"></script>
 
 </body>
 </html>
