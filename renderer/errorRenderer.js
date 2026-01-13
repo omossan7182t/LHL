@@ -4,7 +4,7 @@
 // ・STOP_REASON が ERROR 以外なら非表示
 // ・詳細なエラー分類やコード化は行わない（仕様通り）
 
-export function renderErrorMessage({
+function renderErrorMessage({
   container,
   stopReason,
   error,
@@ -21,6 +21,7 @@ export function renderErrorMessage({
   container.style.display = "block";
   container.textContent = buildMessage(error);
 }
+window.renderErrorMessage = renderErrorMessage;
 
 function buildMessage(error) {
   // error は VM 側 or tokenize 側で生成されたオブジェクトを想定
