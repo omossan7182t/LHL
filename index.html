@@ -1,78 +1,266 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>UiLang Playground</title>
-
-  <!-- CSS -->
-  <link rel="stylesheet" href="./style.css" />
+<meta charset="UTF-8">
+<title>UiLang Playground</title>
+<style>
+/* ===== style.css 統合 ===== */
+body { font-family: monospace; background: #f7f7f7; margin: 0; }
+.app-header { background: #222; color: #fff; padding: 0.5rem 1rem; display: flex; justify-content: space-between; align-items: center; }
+.controls { padding: 0.5rem; }
+.controls button { margin-right: 0.5rem; }
+.status-bar { background: #eee; padding: 0.5rem; }
+.main-layout { display: flex; padding: 1rem; gap: 1rem; }
+.code-panel { flex: 1; background: #fff; border: 1px solid #ccc; padding: 0.5rem; overflow: auto; height: 300px; }
+.memory-panel { width: 320px; background: #fff; border: 1px solid #ccc; padding: 0.5rem; overflow: auto; }
+.memory-grid { display: grid; grid-template-columns: repeat(16, 1fr); grid-gap: 2px; }
+.memory-cell { border: 1px solid #ddd; padding: 2px; text-align: center; font-size: 0.75rem; }
+.memory-cell.active { background: #fffa90; }
+.bp { background: #90f; color: #fff; }
+.error { background: #f33; color: #fff; }
+.ip-highlight { background: #0f0; }
+.error-panel { color: red; min-height: 1.5em; margin-top: 0.5rem; }
+</style>
 </head>
 <body>
-  <div id="app">
+<div id="app">
 
-    <!-- ===== ヘッダー ===== -->
-    <header class="app-header">
-      <h1 class="app-title">UiLang Playground</h1>
-    </header>
+<header class="app-header">
+  <h1 class="app-title">UiLang Playground</h1>
+  <span id="debug-mode">Debug: OFF</span>
+</header>
 
-    <!-- ===== コントロール ===== -->    
-    <section class="controls">
-      <button id="btn-run">Run</button>
-      <button id="btn-step">Step</button>
-      <button id="btn-reset">Reset</button>
-    </section>
+<section class="controls">
+  <button id="btn-run">Run</button>
+  <button id="btn-step">Step</button>
+  <button id="btn-reset">Reset</button>
+</section>
 
-    <!-- ===== ステータスバー ===== -->
-    <section id="status" class="status-bar">
-      <!-- statusBar.js が描画 -->
-    </section>
+<section id="status-bar" class="status-bar"></section>
 
-    <!-- ===== メイン領域 ===== -->
-    <main class="main-layout">
+<main class="main-layout">
+  <section class="code-panel">
+    <pre id="code-view"></pre>
+  </section>
+  <section class="memory-panel">
+    <div id="memory-view"></div>
+  </section>
+</main>
 
-      <!-- コード表示 -->
-      <pre id="code" class="code-view">
-        <pre id="code-view" class="code-view">
-<!-- renderCode.js が描画 -->
-        </pre>
-      </section>
+<section id="error-panel" class="error-panel"></section>
+</div>
 
-      <!-- メモリ表示 -->
-      <section class="memory-panel">
-        <div id="memory" class="memory-panel">
-          <!-- renderMemory.js が描画 -->
-        </div>
-      </section>
+<script>
+// ===============================
+// LanguageRegistry.js
+// ===============================
+class LanguageRegistry {
+  static languages = new Map();
+  static register(lang) {
+    this.validate(lang);
+    this.languages.set(lang.id, lang);
+  }
+  static get(id) {
+    const lang = this.languages.get(id);
+    if (!lang) throw new Error(`Language not found: ${id}`);
+    return lang;
+  }
+  static validate(lang) {
+    if (!lang) throw new Error("language required");
+    if (!lang.id) throw new Error("language.id required");
+    if (!lang.name) throw new Error("language.name required");
+    if (!lang.commands) throw new Error("language.commands required");
+  }
+}
+window.LanguageRegistry = LanguageRegistry;
 
-    </main>
+// ===============================
+// NukuLanguage.js
+// ===============================
+const NukuLanguage = {
+  id: "nuku",
+  name: "ぬく方言",
+  commands: {
+    "+": { op: "ADD", delta: 1 },
+    "-": { op: "ADD", delta: -1 },
+    ">": { op: "MOVE", delta: 1 },
+    "<": { op: "MOVE", delta: -1 },
+    ".": { op: "OUTPUT" },
+    ",": { op: "INPUT" },
+    "[": { op: "LOOP_START" },
+    "]": { op: "LOOP_END" },
+  },
+};
+LanguageRegistry.register(NukuLanguage);
 
-    <!-- ===== エラー表示 ===== -->
-    <section id="error" class="error-panel">
-      <!-- errorRenderer.js が描画 -->
-    </section>
+// ===============================
+// tokenizeNukuDialect.js
+// ===============================
+function tokenizeNukuDialect(src, langId = "nuku") {
+  const lang = LanguageRegistry.get(langId);
+  const tokens = [];
+  const loopStack = [];
+  for (let i=0;i<src.length;i++){
+    const ch = src[i];
+    const cmd = lang.commands[ch];
+    if(!cmd) continue;
+    const token = { op: cmd.op, delta: cmd.delta, index: i };
+    tokens.push(token);
+    if(token.op === "LOOP_START") loopStack.push(tokens.length-1);
+    if(token.op === "LOOP_END"){
+      if(loopStack.length===0){
+        token.error="unmatched loop";
+      } else {
+        const start = loopStack.pop();
+        token.jump=start;
+        tokens[start].jump = tokens.length-1;
+      }
+    }
+  }
+  if(loopStack.length>0){
+    tokens[loopStack.pop()].error="unmatched loop";
+  }
+  return tokens;
+}
+window.tokenizeNukuDialect = tokenizeNukuDialect;
 
-  </div>
+// ===============================
+// VMState.js
+// ===============================
+class VMState {
+  constructor(tokens) {
+    this.memory = new Uint8Array(30000);
+    this.ptr = 0;
+    this.ip = 0;
+    this.tokens = tokens;
+    this.error = null;
+    this.pendingCount = 0;
+  }
+  step() {
+    const token = this.tokens[this.ip];
+    if(!token) return "END";
+    if(token.error){ this.error=token.error; return "ERROR"; }
+    switch(token.op){
+      case "ADD": this.memory[this.ptr]+=token.delta??0; break;
+      case "MOVE": this.ptr+=token.delta??0; break;
+      case "OUTPUT": console.log(String.fromCharCode(this.memory[this.ptr])); break;
+      case "LOOP_START": if(this.memory[this.ptr]===0) this.ip=token.jump; break;
+      case "LOOP_END": if(this.memory[this.ptr]!==0) this.ip=token.jump; break;
+    }
+    this.ip++;
+    return "RUNNING";
+  }
+}
+window.VMState = VMState;
 
-  <!-- ===== スクリプト読み込み順（重要） ===== -->
+// ===============================
+// ExecutionController.js
+// ===============================
+class ExecutionController {
+  constructor({source, codeViewEl, memoryViewEl, statusBarEl, errorPanelEl}) {
+    this.tokens = tokenizeNukuDialect(source);
+    this.vm = new VMState(this.tokens);
+    this.stopReason = "END";
+    this.running = false;
+    this.breakpoints = new Set();
+    this.ignoreFirstBp=false;
+    this.lastExecutedIp=null;
+    this.errorPanelEl=errorPanelEl;
+    this.codeViewEl=codeViewEl;
+    this.memoryViewEl=memoryViewEl;
+    this.statusBarEl=statusBarEl;
+    this.update();
+  }
+  toggleBreakpoint(ip){ this.breakpoints.has(ip)?this.breakpoints.delete(ip):this.breakpoints.add(ip); this.update();}
+  hasBreakpoint(ip){ return this.breakpoints.has(ip);}
+  reset(){ this.vm = new VMState(this.tokens); this.stopReason="END"; this.running=false; this.lastExecutedIp=null; this.update();}
+  step(){
+    if(this.stopReason==="ERROR"||this.stopReason==="END") return;
+    this.lastExecutedIp=this.vm.ip;
+    const r=this.vm.step();
+    if(r==="ERROR"){ this.stopReason="ERROR"; this.updateError(); this.running=false;}
+    else if(r==="END"){ this.stopReason="END"; this.running=false;}
+    else this.stopReason="STEP";
+    this.update();
+  }
+  run(){
+    if(this.running) return;
+    this.running=true;
+    this.stopReason="RUN";
+    const loop=()=>{
+      if(!this.running) return;
+      if(this.hasBreakpoint(this.vm.ip)){
+        if(this.ignoreFirstBp){ this.ignoreFirstBp=false; }
+        else{ this.stopReason="BP"; this.running=false; this.update(); return;}
+      }
+      this.lastExecutedIp=this.vm.ip;
+      const r=this.vm.step();
+      if(r==="ERROR"){ this.stopReason="ERROR"; this.updateError(); this.running=false; return;}
+      if(r==="END"){ this.stopReason="END"; this.running=false; this.update(); return;}
+      this.update();
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+  updateError(){ this.errorPanelEl.textContent=this.vm.error||"Unknown error";}
+  getStatus(){ return { stopReason:this.stopReason, ip:this.vm.ip, ptr:this.vm.ptr, pendingCount:this.vm.pendingCount, running:this.running}; }
+  update(){ renderCode(this.codeViewEl,this.tokens,this.lastExecutedIp,this.breakpoints); renderMemoryPanel(this.memoryViewEl,this.vm); renderStatusBar(this.statusBarEl,this.getStatus());}
+}
+window.ExecutionController=ExecutionController;
 
-  <!-- 言語・エンコード -->
-  <script src="./language/LanguageRegistry.js"></script>
-  <script src="./Encoder.js"></script>
+// ===============================
+// renderers
+// ===============================
+function renderCode(el,tokens,lastIp,bps){
+  let html="";
+  tokens.forEach((t,i)=>{
+    let cls="";
+    if(i===lastIp) cls="ip-highlight";
+    if(bps.has(i)) cls+=" bp";
+    if(t.error) cls+=" error";
+    html+=`<span class="${cls}">${t.op}</span>`;
+  });
+  el.innerHTML=html;
+}
+window.renderCode=renderCode;
 
-  <!-- VM -->
-  <script src="./vm/VMState.js"></script>
+function renderMemoryPanel(el,vm){
+  let html="<div class='memory-grid'>";
+  for(let i=0;i<80;i++){
+    const cls=i===vm.ptr?"memory-cell active":"memory-cell";
+    html+=`<div class="${cls}">${vm.memory[i]}</div>`;
+  }
+  html+="</div>";
+  el.innerHTML=html;
+}
+window.renderMemoryPanel=renderMemoryPanel;
 
-  <!-- Controller -->
-  <script src="./controller/ExecutionController.js"></script>
+function renderStatusBar(el,status){
+  el.textContent=`IP:${status.ip} PTR:${status.ptr} STOP:${status.stopReason}`;
+}
+window.renderStatusBar=renderStatusBar;
 
-  <!-- Renderers -->
-  <script src="./renderer/codeRenderer.js"></script>
-  <script src="./renderer/memoryRenderer.js"></script>
-  <script src="./renderer/statusBarRenderer.js"></script>
-  <script src="./renderer/errorRenderer.js"></script>
+// ===============================
+// main.js
+// ===============================
+const codeViewEl=document.getElementById("code-view");
+const memoryViewEl=document.getElementById("memory-view");
+const statusBarEl=document.getElementById("status-bar");
+const errorPanelEl=document.getElementById("error-panel");
 
-  <!-- Entry point -->
-  <script src="./main.js"></script>
+const btnRun=document.getElementById("btn-run");
+const btnStep=document.getElementById("btn-step");
+const btnReset=document.getElementById("btn-reset");
 
+const initialSource="+++++>+++++.<.";
+
+const controller=new ExecutionController({source:initialSource,codeViewEl,memoryViewEl,statusBarEl,errorPanelEl});
+
+controller.reset();
+
+btnRun.addEventListener("click",()=>{controller.run();});
+btnStep.addEventListener("click",()=>{controller.step();});
+btnReset.addEventListener("click",()=>{controller.reset();});
+</script>
 </body>
 </html>
